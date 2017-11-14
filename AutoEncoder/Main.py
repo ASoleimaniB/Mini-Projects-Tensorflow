@@ -7,6 +7,7 @@ import sys
 import matplotlib.pyplot as plt
 import time
 import numpy as np
+import scipy.io as sio
 
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -32,12 +33,13 @@ def main(_):
   X9=mnist.train._images[8:9,:]
   # Create the model
   x = tf.placeholder(tf.float32, [None, 784])
-  W1 = tf.Variable(tf.truncated_normal([784, 5],stddev=0.1))
-  b1 = tf.Variable(tf.constant(0.1, shape=[5]))
+  W1 = tf.Variable(tf.truncated_normal([784, 30],stddev=0.1))
+  b1 = tf.Variable(tf.truncated_normal([1, 30], stddev=0.1))
+  # b1 = tf.Variable(tf.constant(.1,shape=[30]))
   z = tf.nn.sigmoid(tf.matmul(x, W1) + b1)
 
-  W2 = tf.Variable(tf.truncated_normal([5, 784],stddev=0.1))
-  b2 = tf.Variable(tf.constant(0.1, shape=[784]))
+  W2 = tf.Variable(tf.truncated_normal([30, 784],stddev=0.1))
+  b2 = tf.Variable(tf.truncated_normal([1, 784], stddev=0.1))
   y = tf.nn.sigmoid(tf.matmul(z, W2) + b2)
 
 
@@ -46,23 +48,23 @@ def main(_):
 
 
   Mean_Square_Error=tf.losses.mean_squared_error(y_,y)
-  train_step = tf.train.AdamOptimizer(0.05).minimize(Mean_Square_Error)
-  # train_step = tf.train.GradientDescentOptimizer(1).minimize(Mean_Square_Error)
-  init=tf.global_variables_initializer()
+  train_step = tf.train.AdamOptimizer(0.01).minimize(Mean_Square_Error)
+  # train_step = tf.train.GradientDescentOptimizer(.01).minimize(Mean_Square_Error)
+  init=tf.initialize_all_variables()
   sess = tf.Session()
   sess.run(init)
 
   writer = tf.summary.FileWriter('./tmp')
   summary_accuracy = tf.summary.scalar("accuracy", Mean_Square_Error)
 
-  for i in range(100000):
+  for i in range(20000):
     batch_xs, batch_ys = mnist.train.next_batch(100)
     sess.run(train_step, feed_dict={x: batch_xs, y_: batch_xs})
     # summary (comment these lines and uncomment those in below "if", if you see a drop in speed
     Summary = sess.run(summary_accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.images})
     writer.add_summary(Summary, i)
 
-    if i % 100 == 0:
+    if i % 1000 == 0:
       # show original and constructed image
       x0 = np.reshape(X0, [28, 28])
       y0 = sess.run(y, feed_dict={x: X0})
@@ -104,6 +106,7 @@ def main(_):
       y9 = sess.run(y, feed_dict={x: X9})
       y9 = np.reshape(y9, [28, 28])
 
+      plt.figure(1)
       plt.ion()
       plt.subplot(2,10,1)
       plt.imshow(x0)
@@ -155,7 +158,30 @@ def main(_):
       plt.subplot(2,10,20)
       plt.imshow(y9)
 
-      plt.pause(.00001)
+      plt.pause(.01)
+
+      W = (sess.run(W1))
+      plt.figure(2)
+      plt.ion()
+      for ii in range(30):
+
+        plt.subplot(6,5,ii+1)
+        plt.imshow(np.transpose(np.reshape(W[:,ii],[28, 28])))
+
+
+      plt.pause(.01)
+
+
+      # xtrain=sess.run(z, feed_dict={x: mnist.train.images,y_: mnist.train.images})
+      # xtrainlabel=mnist.train.labels
+      # xtest=sess.run(z, feed_dict={x: mnist.test.images,y_: mnist.test.images})
+      # xtestlabel=mnist.test.labels
+      # sio.savemat('train.mat', {'train':xtrain})
+      # sio.savemat('trainlabel.mat', {'trainlabel': xtrainlabel})
+      # sio.savemat('test.mat', {'test': xtest})
+      # sio.savemat('testlabel.mat', {'testlabel': xtestlabel})
+
+
       # print('Train MSE', sess.run(Mean_Square_Error, feed_dict={x: batch_xs, y_: batch_xs}))
       print('Test MSE', sess.run(Mean_Square_Error, feed_dict={x: mnist.test.images,y_: mnist.test.images}))
       # Summary = sess.run(summary_accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.images})
